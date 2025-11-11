@@ -1,0 +1,242 @@
+syntax = "proto3";
+
+option cc_generic_services = false;
+
+enum OperationType {
+    TYPE_UNSPECIFIED = 0;
+    READ_ONLY = 1;
+    READ_WRITE = 2;
+    READ_PROMOTED_TO_READ_WRITE =3;
+}
+
+message TransactionEntry {
+    string sender=1;
+    string receiver=2;
+    int32 unit=3;
+}
+
+message Operation {
+    OperationType type=1;
+    TransactionEntry transaction=2;
+}
+
+enum MessageType {
+    REQUEST_UNSPECIFIED = 0;
+    REQUEST = 1;
+    REPLY = 2;
+    PRE_PREPARE = 3;
+    PREPARE = 4;
+    COMMIT = 5;
+    CHECKPOINT = 6;
+    VIEW_CHANGE = 7;
+    NEW_VIEW = 8;
+}
+
+message RequestContent {
+    MessageType message_type = 1;
+    Operation operation = 2;
+    uint64 timestamp = 3;
+}
+
+message Request {
+    RequestContent request_content = 1;
+    string client = 2;
+    bytes signature = 3;
+}
+
+message Result {
+    bool successfully_processed = 1;
+    int32 balance_value = 2;
+}
+
+message ReplyContent {
+    MessageType message_type = 1;
+    int32 view_number = 2;
+    uint64 timestamp = 3;
+    string client = 4;
+    Result result = 5;
+}
+
+message Reply {
+    ReplyContent reply_content = 1;
+    string node = 2;
+    bytes signature = 3;
+}
+
+message ConsensusContent {
+    MessageType message_type = 1;
+    int32 sequence_number = 2;
+    int32 view_number = 3;
+    string message_digest = 4;
+}
+
+message PrePrepare {
+    ConsensusContent pre_prepare_content = 1;
+    Request message = 2;
+    string node = 3;
+    bytes signature = 4;
+}
+
+message Prepare {
+    ConsensusContent prepare_content = 1;
+    string node = 2;
+    bytes signature = 3;
+    bytes fast_path_signature = 4;
+}
+
+message CollectedPrepare {
+    ConsensusContent prepare_content = 1;
+    string node = 2;
+    bool is_fast_path = 3;
+    bytes signature = 4;
+}
+
+message Commit {
+    ConsensusContent commit_content = 1;
+    string node = 2;
+    bytes signature = 3;
+}
+
+message CollectedCommit {
+    ConsensusContent commit_content = 1;
+    string node = 2;
+    bytes signature = 3;
+}
+
+message CheckpointContent {
+    MessageType message_type = 1;
+    int32 sequence_number = 2;
+    string data_digest = 3;
+}
+
+message Checkpoint {
+    CheckpointContent checkpoint_content = 1;
+    string node = 2;
+    bytes signature = 3;
+}
+
+message PreparedViewChangeEvidence {
+    CollectedPrepare collected_prepare = 1;
+    bool is_fast_path = 2;
+}
+
+message ViewChangeContent {
+    MessageType message_type = 1;
+    int32 view_number = 2;
+    int32 last_stable_sequence_number = 3;
+    string data_digest = 4;
+    repeated Checkpoint checkpoint_evidence = 5;
+    map<int32, PreparedViewChangeEvidence> prepared_evidence = 6;
+}
+
+message ViewChange {
+    ViewChangeContent view_change_content = 1;
+    string node = 2;
+    bytes signature = 3;
+}
+
+message PrePrepareViewChangeSet {
+    PrePrepare pre_prepare = 1;
+    PreparedViewChangeEvidence prepared_evidence = 2;
+}
+
+message NewViewContent {
+    MessageType message_type = 1;
+    int32 view_number = 2;
+    repeated ViewChange view_change_evidence = 3;
+    map<int32, PrePrepareViewChangeSet> pre_prepare_set = 4;
+}
+
+message NewView {
+    NewViewContent new_view_content = 1;
+    string node = 2;
+    bytes signature = 3;
+}
+
+message Empty {
+
+}
+
+message ByzantineAtt {
+  string type = 1;
+  repeated string target_node_ids = 2;
+}
+
+message NodeSetupRequest {
+  bool activate_node = 1;
+  bool byzantine_node = 2;
+  repeated ByzantineAtt attacks = 3;
+}
+
+message TransactionSetRequest {
+  int32 set_number = 4;
+  repeated TransactionEntry transactions = 5;
+}
+
+service Orchestrator {
+    rpc ToSetupNode (NodeSetupRequest) returns (Empty) {}
+    rpc SendTransactions (TransactionSetRequest) returns (Empty) {}
+    rpc SendShutdown (Empty) returns (Empty) {}
+    rpc CallHelperFunction (HelperFunctionRequest) returns (Empty) {}
+}
+
+message HelperFunctionRequest {
+  string request_type = 1;
+  int32 sequence_number = 2;
+}
+
+message DataStateRequestContent {
+    int32 sequence_number = 1;
+}
+
+message DataStateRequest {
+    DataStateRequestContent data_state_request_content = 1;
+    string node = 2;
+    bytes signature = 3;
+}
+
+message DataStateResponseContent {
+    int32 sequence_number = 1;
+    string data_state = 2;
+}
+message DataStateResponse {
+    DataStateResponseContent data_state_response_content = 1;
+    string node = 2;
+    bytes signature = 3;
+}
+
+message ClientMessageRequestContent {
+    int32 sequence_number = 1;
+}
+
+message ClientMessageRequest {
+    ClientMessageRequestContent client_message_request_content = 1;
+    string node = 2;
+    bytes signature = 3;
+}
+
+message ClientMessageResponseContent {
+    int32 sequence_number = 1;
+    Request client_request = 2;
+}
+
+message ClientMessageResponse {
+    ClientMessageResponseContent client_message_response_content = 1;
+    string node = 2;
+    bytes signature = 3;
+}
+
+service NodeService {
+    rpc SendRequest (Request) returns (Empty) {}
+    rpc SendReply (Reply) returns (Empty) {}
+    rpc SendPrePrepare (PrePrepare) returns (Empty) {}
+    rpc SendPrepare (Prepare) returns (Empty) {}
+    rpc SendCollectedPrepare (CollectedPrepare) returns (Empty) {}
+    rpc SendCommit (Commit) returns (Empty) {}
+    rpc SendCollectedCommit (CollectedCommit) returns (Empty) {}
+    rpc SendCheckpoint (Checkpoint) returns (Empty) {}
+    rpc SendDataStateRequest (DataStateRequest) returns (DataStateResponse) {}
+    rpc SendViewChange (ViewChange) returns (Empty) {}
+    rpc SendNewView (NewView) returns (Empty) {}
+    rpc SendClientMessageRequest (ClientMessageRequest) returns (ClientMessageResponse) {}
+}
