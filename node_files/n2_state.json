@@ -1,0 +1,10 @@
+{
+    "resources_file": "/home/sushant/DS_Skeleton_Project/pbft/bft-sushantpatil2899/resources.json",
+    "data_state_file": "/home/sushant/DS_Skeleton_Project/pbft/bft-sushantpatil2899/node_files/n2_data_state.json",
+    "timeout_ms": 300,
+    "checkpoint_interval": 10,
+    "no_faults": 2,
+    "total_nodes": 7,
+    "valid_sequence_range": 20,
+    "fast_path_wait_time_ms": 25
+}
