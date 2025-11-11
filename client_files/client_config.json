@@ -1,0 +1,6 @@
+{
+    "resources_file": "/home/sushant/DS_Skeleton_Project/pbft/bft-sushantpatil2899/resources.json",
+    "timeout_ms": 450,
+    "no_faults": 2,
+    "total_nodes": 7
+}
